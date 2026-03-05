@@ -2,28 +2,30 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// memoria temporal
+// Memoria temporal (se pierde si Cloud Run reinicia)
 const jobs = {};
 
-// health
+// Health
 app.get("/health", (req, res) => {
   res.json({ ok: true, service: "zyclip-api", time: new Date().toISOString() });
 });
 
-// home
+// Home
 app.get("/", (req, res) => {
   res.send("Zyclip API funcionando 🚀");
 });
 
-// ping test
+// Ping
 app.get("/ping", (req, res) => {
   res.json({ ok: true, message: "pong", time: new Date().toISOString() });
 });
 
-// crear job
+// Crear job
 app.post("/create-job", (req, res) => {
   const body = req.body || {};
   const videoUrl = body.videoUrl;
@@ -47,7 +49,7 @@ app.post("/create-job", (req, res) => {
     createdAt: new Date().toISOString(),
   };
 
-  // simulación
+  // Simulación de estados
   setTimeout(() => {
     if (jobs[jobId]) jobs[jobId].status = "processing";
   }, 3000);
@@ -59,7 +61,7 @@ app.post("/create-job", (req, res) => {
       jobs[jobId].clips = [
         { id: "clip1", title: "Clip 1", url: "https://example.com/clip1.mp4" },
         { id: "clip2", title: "Clip 2", url: "https://example.com/clip2.mp4" },
-        { id: "clip3", title: "Clip 3", url: "https://example.com/clip3.mp4" }
+        { id: "clip3", title: "Clip 3", url: "https://example.com/clip3.mp4" },
       ];
     }
   }, 8000);
@@ -67,12 +69,17 @@ app.post("/create-job", (req, res) => {
   return res.json({ ok: true, jobId, status: "queued" });
 });
 
-// ver job
+// Ver job
 app.get("/job/:id", (req, res) => {
   const job = jobs[req.params.id];
-  if (!job) return res.status(404).json({ error: "Job no encontrado" });
-  res.json(job);
+  if (!job) return res.status(404).json({ ok: false, error: "Job no encontrado" });
+  res.json({ ok: true, ...job });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+// ✅ Cloud Run: SIEMPRE usar process.env.PORT (normalmente 8080)
+const PORT = Number(process.env.PORT) || 8080;
+
+// ✅ Escuchar en 0.0.0.0 para que sea accesible desde fuera (Cloud Run)
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Zyclip API corriendo en puerto ${PORT}`);
+});
