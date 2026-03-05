@@ -2,30 +2,28 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Memoria temporal (se pierde si Cloud Run reinicia)
+// memoria temporal
 const jobs = {};
 
-// Health
+// health
 app.get("/health", (req, res) => {
   res.json({ ok: true, service: "zyclip-api", time: new Date().toISOString() });
 });
 
-// Home
+// home
 app.get("/", (req, res) => {
   res.send("Zyclip API funcionando 🚀");
 });
 
-// Ping
+// ping test
 app.get("/ping", (req, res) => {
   res.json({ ok: true, message: "pong", time: new Date().toISOString() });
 });
 
-// Crear job
+// crear job
 app.post("/create-job", (req, res) => {
   const body = req.body || {};
   const videoUrl = body.videoUrl;
@@ -49,7 +47,7 @@ app.post("/create-job", (req, res) => {
     createdAt: new Date().toISOString(),
   };
 
-  // Simulación de estados
+  // simulación
   setTimeout(() => {
     if (jobs[jobId]) jobs[jobId].status = "processing";
   }, 3000);
@@ -69,17 +67,17 @@ app.post("/create-job", (req, res) => {
   return res.json({ ok: true, jobId, status: "queued" });
 });
 
-// Ver job
+// ver job
 app.get("/job/:id", (req, res) => {
   const job = jobs[req.params.id];
   if (!job) return res.status(404).json({ ok: false, error: "Job no encontrado" });
-  res.json({ ok: true, ...job });
+  res.json(job);
 });
 
-// ✅ Cloud Run: SIEMPRE usar process.env.PORT (normalmente 8080)
-const PORT = Number(process.env.PORT) || 8080;
+// Cloud Run te pasa el puerto en PORT (normalmente 8080)
+const PORT = parseInt(process.env.PORT || "8080", 10);
 
-// ✅ Escuchar en 0.0.0.0 para que sea accesible desde fuera (Cloud Run)
+// MUY IMPORTANTE: bind a 0.0.0.0 en Cloud Run
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Zyclip API corriendo en puerto ${PORT}`);
+  console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
 });
